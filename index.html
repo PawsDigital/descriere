@@ -626,6 +626,7 @@
       </p>
       <div class="top-actions">
         <button id="openChannelsMenuBtn" class="btn" type="button">Canale</button>
+        <button id="copyDefaultChannelsBtn" class="btn" type="button">Copiază pentru GitHub</button>
         <button id="clearAllBtn" class="btn" type="button">Șterge toate canalele</button>
       </div>
     </header>
@@ -690,6 +691,21 @@
   <script>
     const STORAGE_KEY = 'aroma-horizontal-youtube-channels-v1';
 
+    // CANALE PENTRU GITHUB
+    // Pune canalele permanente aici. Acestea apar automat pe GitHub Pages
+    // pentru vizitatorii care nu au încă date salvate în browser.
+    const DEFAULT_CHANNELS = [
+      {
+        id: 'aroma-records-digital',
+        url: 'https://www.youtube.com/@aromarecordsdigital',
+        name: 'Aroma Records Digital',
+        avatarUrl: '',
+        description: `Pune aici descrierea canalului.
+Poți scrie pe mai multe rânduri, exact ca în descrierea de pe YouTube.`,
+        createdAt: '2026-05-25T00:00:00.000Z'
+      }
+    ];
+
     const app = {
       channels: [],
       editingId: null,
@@ -708,6 +724,7 @@
       cancelBtn: document.getElementById('cancelBtn'),
       autoFillBtn: document.getElementById('autoFillBtn'),
       clearAllBtn: document.getElementById('clearAllBtn'),
+      copyDefaultChannelsBtn: document.getElementById('copyDefaultChannelsBtn'),
       openChannelsMenuBtn: document.getElementById('openChannelsMenuBtn'),
       channelsMenu: document.getElementById('channelsMenu'),
       closeChannelsMenuBtn: document.getElementById('closeChannelsMenuBtn'),
@@ -720,11 +737,25 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(app.channels));
     }
 
+    function cloneDefaultChannels() {
+      return DEFAULT_CHANNELS.map((channel) => ({ ...channel }));
+    }
+
     function load() {
       try {
-        app.channels = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        const saved = localStorage.getItem(STORAGE_KEY);
+
+        if (saved !== null) {
+          const parsed = JSON.parse(saved);
+          app.channels = Array.isArray(parsed) ? parsed : [];
+          return;
+        }
+
+        app.channels = cloneDefaultChannels();
+        save();
       } catch {
-        app.channels = [];
+        app.channels = cloneDefaultChannels();
+        save();
       }
     }
 
@@ -953,6 +984,41 @@
       save();
     }
 
+    function toDefaultChannelsCode() {
+      const cleanChannels = app.channels.map((channel, index) => ({
+        id: channel.id || `canal-${index + 1}`,
+        url: channel.url || '',
+        name: channel.name || 'Canal YouTube',
+        avatarUrl: channel.avatarUrl || '',
+        description: channel.description || '',
+        createdAt: channel.createdAt || new Date().toISOString(),
+      }));
+
+      return `const DEFAULT_CHANNELS = ${JSON.stringify(cleanChannels, null, 2)};`;
+    }
+
+    async function copyChannelsForGithub() {
+      if (!app.channels.length) {
+        showStatus('Nu ai canale de copiat încă.');
+        return;
+      }
+
+      const code = toDefaultChannelsCode();
+
+      try {
+        await navigator.clipboard.writeText(code);
+        showStatus('Am copiat canalele. Lipește lista peste DEFAULT_CHANNELS în HTML și urcă fișierul pe GitHub.');
+      } catch {
+        const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'default-channels-pentru-github.txt';
+        link.click();
+        URL.revokeObjectURL(link.href);
+        showStatus('Am descărcat lista de canale pentru GitHub.');
+      }
+    }
+
     async function fillFormAutomatically() {
       const url = normalizeUrl(els.channelUrl.value);
       if (!url) {
@@ -976,6 +1042,7 @@
     els.cancelBtn.addEventListener('click', closeModal);
     els.autoFillBtn.addEventListener('click', fillFormAutomatically);
     els.openChannelsMenuBtn.addEventListener('click', openChannelsMenu);
+    els.copyDefaultChannelsBtn.addEventListener('click', copyChannelsForGithub);
     els.closeChannelsMenuBtn.addEventListener('click', closeChannelsMenu);
     els.channelSearch.addEventListener('input', renderChannelsMenu);
 
