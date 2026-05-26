@@ -1,821 +1,1307 @@
-<!doctype html>
-<html lang="ro">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Karaoke Word Timer</title>
+<!DOCTYPE html>
+<html lang="ro"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Canale YouTube</title>
   <style>
     :root {
-      --bg: #101114;
-      --panel: #181a20;
-      --panel2: #20232b;
-      --text: #f5f7fb;
-      --muted: #aab0bd;
-      --accent: #7aa2ff;
-      --accent2: #8cffc1;
-      --danger: #ff7676;
-      --line: #303542;
+      --bg-start: #03060a;
+      --bg-mid: #09111a;
+      --bg-end: #0d1822;
+      --text-main: #f5f7fb;
+      --text-soft: rgba(245, 247, 251, 0.72);
+      --text-muted: rgba(245, 247, 251, 0.50);
+      --cyan: #36ddff;
+      --cyan-strong: #00d9ff;
+      --danger: #ff6b86;
+      --success: #8df0b2;
+      --panel-border: rgba(255, 255, 255, 0.09);
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
+      --radius-xl: 32px;
+      --radius-lg: 24px;
     }
+
     * { box-sizing: border-box; }
+
+    html,
     body {
+      zoom: 0.9;
       margin: 0;
-      background: var(--bg);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
-      overflow: hidden;
+      padding: 0;
+      min-height: 100%;
+      font-family: Inter, Arial, Helvetica, sans-serif;
+      color: var(--text-main);
+      background:
+        radial-gradient(circle at top center, rgba(0, 195, 255, 0.14) 0%, rgba(0, 195, 255, 0) 28%),
+        linear-gradient(180deg, var(--bg-start) 0%, var(--bg-mid) 40%, var(--bg-end) 100%);
     }
-    header {
-      height: 58px;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      padding: 0 18px;
-      border-bottom: 1px solid var(--line);
-      background: #0c0d10;
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 15% 18%, rgba(54, 221, 255, 0.08), transparent 24%),
+        radial-gradient(circle at 86% 24%, rgba(54, 221, 255, 0.06), transparent 20%);
     }
-    header h1 {
-      font-size: 18px;
-      margin: 0;
-      font-weight: 700;
-      white-space: nowrap;
-    }
-    .files {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      flex-wrap: wrap;
-      font-size: 13px;
-    }
-    input[type=file] {
-      color: var(--muted);
-      max-width: 230px;
-    }
-    main {
-      display: grid;
-      grid-template-columns: 320px 1fr;
-      height: calc(100vh - 58px);
-    }
-    aside {
-      border-right: 1px solid var(--line);
-      background: var(--panel);
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-    .side-top {
-      padding: 14px;
-      border-bottom: 1px solid var(--line);
-    }
-    .side-top .big {
-      font-size: 34px;
-      line-height: 1.1;
-      font-weight: 800;
-      color: var(--accent2);
-      word-break: break-word;
-    }
-    .side-top .small {
-      margin-top: 8px;
-      color: var(--muted);
-      font-size: 13px;
-    }
-    #wordList {
-      overflow: auto;
-      padding: 8px;
-      flex: 1;
-    }
-    .wordItem {
-      display: flex;
-      justify-content: space-between;
-      gap: 8px;
-      padding: 7px 8px;
-      border-radius: 8px;
-      font-size: 14px;
-      border: 1px solid transparent;
-      cursor: pointer;
-    }
-    .wordItem:hover { background: var(--panel2); }
-    .wordItem.current {
-      background: rgba(122,162,255,.18);
-      border-color: rgba(122,162,255,.5);
-      color: #fff;
-    }
-    .wordItem.done .time { color: var(--accent2); }
-    .wordItem .time {
-      color: var(--muted);
-      font-variant-numeric: tabular-nums;
-      white-space: nowrap;
-    }
-    section {
-      display: flex;
-      flex-direction: column;
-      min-width: 0;
-    }
-    .toolbar {
-      padding: 12px 16px;
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      flex-wrap: wrap;
-      border-bottom: 1px solid var(--line);
-      background: var(--panel);
-    }
-    button {
-      border: 1px solid #3a4050;
-      background: #232733;
-      color: var(--text);
-      padding: 8px 12px;
-      border-radius: 10px;
-      font-weight: 650;
-      cursor: pointer;
-    }
-    button:hover { background: #2b3040; }
-    button.primary { background: #2b4b96; border-color: #416bd0; }
-    button.danger { background: #5a2525; border-color: #8d3939; }
-    button:disabled { opacity: .45; cursor: not-allowed; }
-    .timeDisplay {
-      font-size: 24px;
-      font-variant-numeric: tabular-nums;
-      font-weight: 800;
-      margin-left: auto;
-    }
-    .subbar {
-      padding: 10px 16px;
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 12px;
-      align-items: center;
-      color: var(--muted);
-      border-bottom: 1px solid var(--line);
-      background: #14161b;
-    }
-    .linePreview {
-      font-size: 22px;
-      color: var(--text);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .canvasWrap {
-      flex: 1;
-      min-height: 0;
+
+    button,
+    input,
+    textarea { font: inherit; }
+
+    button { cursor: pointer; }
+
+    .page {
       position: relative;
-      background: #0a0b0e;
+      z-index: 1;
+      min-height: 100vh;
+      padding: 42px 24px 60px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      font-size: 12px;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: var(--text-soft);
+    }
+
+    .title {
+      margin: 0;
+      font-size: clamp(30px, 5vw, 58px);
+      font-weight: 900;
+      line-height: 1;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .title span { color: var(--cyan); }
+
+    .subtitle {
+      margin: 14px auto 0;
+      max-width: 820px;
+      color: var(--text-soft);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .top-actions {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+
+    .btn,
+    .icon-btn {
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 999px;
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.05);
+      transition: transform 0.22s ease, box-shadow 0.22s ease, background 0.22s ease;
+      text-decoration: none;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 11px 18px;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+    }
+
+    .btn:hover,
+    .icon-btn:hover {
+      transform: translateY(-2px);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .btn-primary {
+      color: #061018;
+      background: linear-gradient(90deg, var(--cyan-strong), #43b0ff);
+      box-shadow: 0 14px 34px rgba(54, 221, 255, 0.22);
+      border-color: rgba(67, 176, 255, 0.28);
+    }
+
+    .channels-shell {
+      max-width: 1880px;
+      margin: 0 auto;
+      padding: 28px;
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--panel-border);
+      background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .channels-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 22px;
+      flex-wrap: wrap;
+    }
+
+    .channels-toolbar h2 {
+      margin: 0;
+      font-size: clamp(20px, 2vw, 32px);
+    }
+
+    .hint {
+      margin: 6px 0 0;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    .channels-row {
+      display: flex;
+      flex-direction: row;
+      align-items: stretch;
+      gap: 22px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 6px 6px 18px;
+      scroll-snap-type: x proximity;
+    }
+
+    .channels-row::-webkit-scrollbar { height: 10px; }
+    .channels-row::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 999px; }
+    .channels-row::-webkit-scrollbar-thumb { background: rgba(54,221,255,0.34); border-radius: 999px; }
+
+    .channel-card,
+    .add-card {
+      scroll-snap-align: start;
+      flex: 0 0 min(950px, calc(100vw - 92px));
+      min-height: 2000px;
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(255,255,255,0.10);
+      background:
+        linear-gradient(135deg, rgba(54,221,255,0.08), transparent 36%),
+        rgba(255,255,255,0.035);
+      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.24);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .channel-card {
+      padding: 28px;
       display: flex;
       flex-direction: column;
+      gap: 18px;
     }
-    canvas {
+
+    .channel-head {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      min-width: 0;
+      text-align: center;
+    }
+
+    .avatar-wrap {
+      flex: 0 0 auto;
+      width: 118px;
+      height: 118px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.14);
+      box-shadow: 0 14px 34px rgba(0,0,0,0.28);
+      background:
+        radial-gradient(circle at 30% 30%, rgba(54,221,255,0.24), rgba(54,221,255,0.06)),
+        rgba(255,255,255,0.04);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 26px;
+      font-weight: 900;
+    }
+
+    .avatar-wrap img {
       width: 100%;
       height: 100%;
       display: block;
-      cursor: crosshair;
+      object-fit: cover;
     }
-    .hint {
-      position: absolute;
-      bottom: 14px;
-      left: 16px;
-      right: 16px;
-      color: rgba(255,255,255,.72);
-      font-size: 13px;
-      pointer-events: none;
-      text-shadow: 0 1px 2px #000;
+
+    .channel-name {
+      margin: 0;
+      font-size: 26px;
+      line-height: 1.15;
+      word-break: break-word;
     }
-    .status {
-      padding: 8px 16px;
-      color: var(--muted);
-      border-top: 1px solid var(--line);
-      background: #111319;
-      font-size: 13px;
-      min-height: 33px;
-    }
-    .kbd {
+
+    .channel-link {
       display: inline-block;
-      border: 1px solid #555c6e;
-      border-bottom-width: 2px;
-      border-radius: 5px;
-      padding: 1px 6px;
-      color: #fff;
-      background: #222634;
+      margin-top: 8px;
+      max-width: 760px;
+      color: var(--cyan);
       font-size: 12px;
-      margin: 0 1px;
+      text-decoration: none;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      vertical-align: top;
     }
-    label.num {
-      display:flex;
-      align-items:center;
-      gap:6px;
-      color: var(--muted);
+
+    .description-box {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .description-box label {
+      color: var(--text-soft);
+      font-size: 13px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .description-box textarea {
+      width: 100%;
+      flex: 1;
+      min-height: 270px;
+      resize: none;
+      border: 1px solid rgba(255,255,255,0.10);
+      outline: none;
+      border-radius: 18px;
+      padding: 20px 22px;
+      color: var(--text-main);
+      background: rgba(3, 10, 18, 0.78);
+      line-height: 1.65;
+      font-size: 18px;
+      overflow-y: auto;
+    }
+
+    .description-box textarea:focus,
+    .form-card input:focus {
+      border-color: rgba(54, 221, 255, 0.44);
+      box-shadow: 0 0 0 4px rgba(54, 221, 255, 0.08);
+    }
+
+    .description-box textarea::-webkit-scrollbar { width: 12px; }
+    .description-box textarea::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 999px; }
+    .description-box textarea::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.50); border-radius: 999px; }
+
+    .card-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .card-actions-left,
+    .card-actions-right {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .icon-btn {
+      width: 42px;
+      height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    .danger { color: #ff9aad; background: rgba(255, 107, 134, 0.13); }
+    .success { color: var(--success); background: rgba(48, 196, 107, 0.13); }
+
+    .add-card {
+      flex: 0 0 360px;
+    }
+
+    .add-card {
+      order: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 22px;
+      cursor: pointer;
+      min-height: 520px;
+      background:
+        radial-gradient(circle at center, rgba(54,221,255,0.15), transparent 36%),
+        rgba(255,255,255,0.025);
+      transition: transform 0.24s ease, border-color 0.24s ease, background 0.24s ease;
+    }
+
+    .add-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(54, 221, 255, 0.28);
+      background:
+        radial-gradient(circle at center, rgba(54,221,255,0.22), transparent 38%),
+        rgba(255,255,255,0.04);
+    }
+
+    .plus-circle {
+      width: 118px;
+      height: 118px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #061018;
+      background: linear-gradient(90deg, var(--cyan-strong), #43b0ff);
+      font-size: 62px;
+      line-height: 1;
+      font-weight: 300;
+      box-shadow: 0 18px 42px rgba(54, 221, 255, 0.25);
+    }
+
+    .add-copy {
+      text-align: center;
+      margin-top: 18px;
+      color: var(--text-soft);
+      font-weight: 700;
+    }
+
+    .empty-state {
+      flex: 0 0 360px;
+      min-height: 520px;
+      border-radius: var(--radius-lg);
+      border: 1px dashed rgba(255,255,255,0.15);
+      color: var(--text-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+    }
+
+
+    .channel-highlight {
+      animation: channelPulse 1.2s ease;
+      border-color: rgba(54, 221, 255, 0.65) !important;
+      box-shadow:
+        0 18px 42px rgba(0, 0, 0, 0.24),
+        0 0 0 4px rgba(54, 221, 255, 0.14) !important;
+    }
+
+    @keyframes channelPulse {
+      0% { transform: translateY(0) scale(1); }
+      35% { transform: translateY(-4px) scale(1.01); }
+      100% { transform: translateY(0) scale(1); }
+    }
+
+    .channels-menu-card {
+      width: min(680px, 100%);
+      max-height: min(78vh, 760px);
+      border-radius: 28px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: linear-gradient(180deg, rgba(13,24,34,0.98), rgba(4,10,16,0.98));
+      box-shadow: 0 24px 80px rgba(0,0,0,0.44);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .channels-menu-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .channels-menu-top h3 {
+      margin: 0;
+      font-size: 28px;
+    }
+
+    .channels-menu-top p {
+      margin: 8px 0 0;
+      color: var(--text-soft);
+      line-height: 1.5;
+    }
+
+    .channels-menu-search {
+      width: 100%;
+      border: 1px solid rgba(255,255,255,0.10);
+      outline: none;
+      border-radius: 16px;
+      padding: 14px 16px;
+      color: var(--text-main);
+      background: rgba(3, 10, 18, 0.80);
+    }
+
+    .channels-menu-search:focus {
+      border-color: rgba(54, 221, 255, 0.44);
+      box-shadow: 0 0 0 4px rgba(54, 221, 255, 0.08);
+    }
+
+    .channels-menu-list {
+      display: grid;
+      gap: 10px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .channels-menu-list::-webkit-scrollbar { width: 10px; }
+    .channels-menu-list::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 999px; }
+    .channels-menu-list::-webkit-scrollbar-thumb { background: rgba(54,221,255,0.34); border-radius: 999px; }
+
+    .channel-jump-btn {
+      width: 100%;
+      min-height: 72px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.10);
+      color: var(--text-main);
+      background: rgba(255,255,255,0.045);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 14px;
+      text-align: left;
+      transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+    }
+
+    .channel-jump-btn:hover {
+      transform: translateY(-1px);
+      background: rgba(255,255,255,0.075);
+      border-color: rgba(54,221,255,0.24);
+    }
+
+    .channel-jump-avatar {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      overflow: hidden;
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(54,221,255,0.24), rgba(54,221,255,0.06)),
+        rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.12);
+      font-weight: 900;
+      color: #fff;
+    }
+
+    .channel-jump-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .channel-jump-name {
+      font-size: 16px;
+      font-weight: 800;
+      line-height: 1.25;
+      word-break: break-word;
+    }
+
+    .channel-jump-link {
+      margin-top: 4px;
+      color: var(--text-muted);
+      font-size: 12px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 500px;
+    }
+
+    .channels-menu-empty {
+      padding: 18px;
+      border-radius: 16px;
+      border: 1px dashed rgba(255,255,255,0.14);
+      color: var(--text-soft);
+      text-align: center;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(0,0,0,0.58);
+      backdrop-filter: blur(10px);
+    }
+
+    .modal-backdrop.open { display: flex; }
+
+    .form-card {
+      width: min(620px, 100%);
+      border-radius: 28px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: linear-gradient(180deg, rgba(13,24,34,0.98), rgba(4,10,16,0.98));
+      box-shadow: 0 24px 80px rgba(0,0,0,0.44);
+      padding: 24px;
+    }
+
+    .form-card h3 {
+      margin: 0;
+      font-size: 28px;
+    }
+
+    .form-card p {
+      margin: 8px 0 20px;
+      color: var(--text-soft);
+      line-height: 1.55;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .field span {
+      color: var(--text-soft);
       font-size: 13px;
     }
-    input[type=number] {
-      width: 70px;
-      border-radius: 8px;
-      border: 1px solid #3a4050;
-      background: #111319;
-      color: #fff;
-      padding: 7px;
+
+    .field input {
+      width: 100%;
+      border: 1px solid rgba(255,255,255,0.10);
+      outline: none;
+      border-radius: 16px;
+      padding: 14px 16px;
+      color: var(--text-main);
+      background: rgba(3, 10, 18, 0.80);
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 18px;
+      flex-wrap: wrap;
+    }
+
+    .status {
+      margin: 0 0 16px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(54, 221, 255, 0.10);
+      border: 1px solid rgba(54, 221, 255, 0.16);
+      color: var(--text-main);
+      display: none;
+    }
+
+    .status.show { display: block; }
+
+    @media (max-width: 720px) {
+      .page { padding: 30px 14px 48px; }
+      .channels-shell { padding: 18px; border-radius: 24px; }
+      .channel-card,
+      .add-card,
+      .empty-state { flex-basis: min(92vw, 1080px); }
+      .channel-head { flex-direction: column; text-align: center; }
+      .channel-link { max-width: 100%; }
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Karaoke Word Timer</h1>
-    <div class="files">
-      <label>Audio MP3/WAV: <input id="audioFile" type="file" accept="audio/*"></label>
-      <label>Lyrics TXT: <input id="lyricsFile" type="file" accept=".txt,text/plain"></label>
-    </div>
-  </header>
-
-  <main>
-    <aside>
-      <div class="side-top">
-        <div id="currentWord" class="big">Încarcă fișierele</div>
-        <div id="progress" class="small">0 / 0</div>
+  <div class="page">
+    <header class="header">
+      <p class="eyebrow">Aroma Digital</p>
+      <h1 class="title">Canale <span>YouTube</span></h1>
+      <p class="subtitle">
+        Adaugi canalul din link, completezi descrierea într-un chenar lat ca descrierea de pe YouTube și totul rămâne salvat când redeschizi site-ul.
+      </p>
+      <div class="top-actions">
+        <button id="openChannelsMenuBtn" class="btn" type="button">Canale</button>
+        <button id="saveHtmlBtn" class="btn btn-primary" type="button">Save HTML</button>
+        <button id="clearAllBtn" class="btn" type="button">Șterge toate canalele</button>
       </div>
-      <div id="wordList"></div>
-    </aside>
+    </header>
 
-    <section>
-      <div class="toolbar">
-        <button id="playBtn" class="primary" disabled>Play / Pause (Space)</button>
-        <button id="markBtn" disabled>Mark word (D)</button>
-        <button id="backBtn" disabled>Back</button>
-        <button id="zoomInBtn" disabled>Zoom +</button>
-        <button id="zoomOutBtn" disabled>Zoom -</button>
-        <button id="exportAssBtn" disabled>Export ASS</button>
-        <button id="exportWordSrtBtn" disabled>Export Linked Word SRT</button>
-        <button id="exportLineSrtBtn" disabled>Export Line SRT</button>
-        <label class="num">pre-roll <input id="preRoll" type="number" step="0.1" value="1.0">s</label>
-        <div id="timeDisplay" class="timeDisplay">00:00.000</div>
-      </div>
-
-      <div class="subbar">
-        <div id="linePreview" class="linePreview">Linia curentă apare aici</div>
-        <div>Click waveform = seek · Space = play/pause · D = mark · ←/→ = 0.02s · Shift+←/→ = 0.10s</div>
-      </div>
-
-      <div class="canvasWrap">
-        <canvas id="wave"></canvas>
-        <div class="hint">
-          Workflow: click exact unde începe cuvântul pe waveform, apoi <span class="kbd">D</span>. 
-          Sau Play și apeși <span class="kbd">D</span> live. 
-          <span class="kbd">Backspace</span> revine la cuvântul anterior.
+    <main class="channels-shell">
+      <div class="channels-toolbar">
+        <div>
+          <h2>Library Channels</h2>
+          <p class="hint">Layout orizontal: carduri late, cu logo-ul și canalul centrate sus.</p>
         </div>
+        <button id="openAddBtn" class="btn btn-primary" type="button">+ Youtube Channel</button>
       </div>
-      <div id="status" class="status">Aștept audio și lyrics.txt.</div>
-    </section>
-  </main>
 
-  <audio id="audio"></audio>
+      <p id="status" class="status">Canalul a fost salvat.</p>
+      <section id="channelsRow" class="channels-row" aria-label="Lista canalelor"></section>
+    </main>
+  </div>
 
-<script>
-const audioInput = document.getElementById('audioFile');
-const lyricsInput = document.getElementById('lyricsFile');
-const audio = document.getElementById('audio');
-const canvas = document.getElementById('wave');
-const ctx = canvas.getContext('2d');
+  <div id="channelsMenu" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="channelsMenuTitle">
+    <div class="channels-menu-card">
+      <div class="channels-menu-top">
+        <div>
+          <h3 id="channelsMenuTitle">Canale</h3>
+          <p>Alege rapid canalul și te duc direct la cardul lui, fără să mai dai scroll prin toate.</p>
+        </div>
+        <button id="closeChannelsMenuBtn" class="icon-btn" type="button" aria-label="Închide lista">×</button>
+      </div>
 
-const playBtn = document.getElementById('playBtn');
-const markBtn = document.getElementById('markBtn');
-const backBtn = document.getElementById('backBtn');
-const zoomInBtn = document.getElementById('zoomInBtn');
-const zoomOutBtn = document.getElementById('zoomOutBtn');
-const exportAssBtn = document.getElementById('exportAssBtn');
-const exportWordSrtBtn = document.getElementById('exportWordSrtBtn');
-const exportLineSrtBtn = document.getElementById('exportLineSrtBtn');
+      <input id="channelSearch" class="channels-menu-search" type="search" placeholder="Caută canalul...">
+      <div id="channelsMenuList" class="channels-menu-list">
+        <button class="channel-jump-btn" type="button" data-jump="1779727195528-1c7d78335ea3c">
+          <span class="channel-jump-avatar">
+            <img src="https://unavatar.io/youtube/LongaVideography" alt="LongaVideography" onerror="this.remove(); this.parentElement.textContent='LO'">
+          </span>
+          <span>
+            <span class="channel-jump-name">LongaVideography</span>
+            <span class="channel-jump-link">https://www.youtube.com/@LongaVideography</span>
+          </span>
+        </button>
+      
+        <button class="channel-jump-btn" type="button" data-jump="1779727964077-57f37bae22571">
+          <span class="channel-jump-avatar">
+            <img src="https://unavatar.io/youtube/BelcotaProductionEvents" alt="BelcotaProductionEvents" onerror="this.remove(); this.parentElement.textContent='BE'">
+          </span>
+          <span>
+            <span class="channel-jump-name">BelcotaProductionEvents</span>
+            <span class="channel-jump-link">https://www.youtube.com/@BelcotaProductionEvents</span>
+          </span>
+        </button>
+      
+        <button class="channel-jump-btn" type="button" data-jump="1779727998914-b92409cb0694e">
+          <span class="channel-jump-avatar">
+            <img src="https://unavatar.io/youtube/Belcota.Production" alt="Belcota Production" onerror="this.remove(); this.parentElement.textContent='BP'">
+          </span>
+          <span>
+            <span class="channel-jump-name">Belcota Production</span>
+            <span class="channel-jump-link">https://www.youtube.com/@Belcota.Production</span>
+          </span>
+        </button>
+      
+        <button class="channel-jump-btn" type="button" data-jump="1779728015342-42714bc17e55e8">
+          <span class="channel-jump-avatar">
+            <img src="https://unavatar.io/youtube/PetruHumitaStudio" alt="PetruHumitaStudio" onerror="this.remove(); this.parentElement.textContent='PE'">
+          </span>
+          <span>
+            <span class="channel-jump-name">PetruHumitaStudio</span>
+            <span class="channel-jump-link">https://www.youtube.com/@PetruHumitaStudio</span>
+          </span>
+        </button>
+      
+        <button class="channel-jump-btn" type="button" data-jump="1779728033026-f0f58c2eb0b0f">
+          <span class="channel-jump-avatar">
+            <img src="https://unavatar.io/youtube/GabrielTimaruVideography" alt="GabrielTimaruVideography" onerror="this.remove(); this.parentElement.textContent='GA'">
+          </span>
+          <span>
+            <span class="channel-jump-name">GabrielTimaruVideography</span>
+            <span class="channel-jump-link">https://www.youtube.com/@GabrielTimaruVideography</span>
+          </span>
+        </button>
+      
+        <button class="channel-jump-btn" type="button" data-jump="1779728048707-904544347ea9c">
+          <span class="channel-jump-avatar">
+            <img src="https://unavatar.io/youtube/HDVideoBanat" alt="HDVideoBanat" onerror="this.remove(); this.parentElement.textContent='HD'">
+          </span>
+          <span>
+            <span class="channel-jump-name">HDVideoBanat</span>
+            <span class="channel-jump-link">https://www.youtube.com/@HDVideoBanat</span>
+          </span>
+        </button>
+      
+        <button class="channel-jump-btn" type="button" data-jump="1779728072391-c6d3cf6f089c9">
+          <span class="channel-jump-avatar">
+            <img src="https://unavatar.io/youtube/Man.Production" alt="Man Production" onerror="this.remove(); this.parentElement.textContent='MP'">
+          </span>
+          <span>
+            <span class="channel-jump-name">Man Production</span>
+            <span class="channel-jump-link">https://www.youtube.com/@Man.Production</span>
+          </span>
+        </button>
+      
+        <button class="channel-jump-btn" type="button" data-jump="1779728530692-5d09ec5430e79">
+          <span class="channel-jump-avatar">
+            <img src="https://unavatar.io/youtube/StudioDITA." alt="StudioDITA" onerror="this.remove(); this.parentElement.textContent='ST'">
+          </span>
+          <span>
+            <span class="channel-jump-name">StudioDITA</span>
+            <span class="channel-jump-link">https://www.youtube.com/@StudioDITA.</span>
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
 
-const currentWordEl = document.getElementById('currentWord');
-const progressEl = document.getElementById('progress');
-const wordListEl = document.getElementById('wordList');
-const linePreviewEl = document.getElementById('linePreview');
-const timeDisplayEl = document.getElementById('timeDisplay');
-const statusEl = document.getElementById('status');
-const preRollInput = document.getElementById('preRoll');
+  <div id="modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <form id="channelForm" class="form-card">
+      <h3 id="modalTitle">Adaugă canal</h3>
+      <p>Pune link-ul canalului. Site-ul încearcă să completeze automat numele și poza rotundă. Dacă YouTube blochează datele, poți completa manual.</p>
 
-let audioBuffer = null;
-let peaks = [];
-let peakSecondsPerBucket = 0;
-let lyricsLines = [];
-let words = [];
-let wordIndex = 0;
-let viewCenter = 0;
-let zoomSeconds = 12;
-let raf = null;
-let dragging = false;
+      <label class="field">
+        <span>Link canal YouTube</span>
+        <input id="channelUrl" type="url" placeholder="https://youtube.com/@nume" required="">
+      </label>
 
-function setStatus(s) { statusEl.textContent = s; }
+      <label class="field">
+        <span>Nume canal</span>
+        <input id="channelName" type="text" placeholder="Se completează automat sau manual">
+      </label>
 
-function cleanLine(line) {
-  const low = line.toLowerCase().replaceAll(':','').trim();
-  if (low.startsWith('strofa') || low.startsWith('refren')) return '';
-  return line.trim();
-}
+      <label class="field">
+        <span>URL poză canal</span>
+        <input id="channelAvatar" type="url" placeholder="Se încearcă automat; poți pune și manual o poză">
+      </label>
 
-function extractWords(line) {
-  return line.match(/[A-Za-zĂÂÎȘŞȚŢăâîșşțţ0-9'’\-]+/gu) || [];
-}
+      <div class="form-actions">
+        <button id="cancelBtn" class="btn" type="button">Anulează</button>
+        <button id="autoFillBtn" class="btn" type="button">Completează automat</button>
+        <button class="btn btn-primary" type="submit">Salvează canal</button>
+      </div>
+    </form>
+  </div>
 
-function loadLyricsText(text) {
-  lyricsLines = [];
-  words = [];
-  wordIndex = 0;
+  <script>
+    const STORAGE_KEY = 'aroma-horizontal-youtube-channels-v1';
 
-  const rawLines = text.split(/\r?\n/);
-  for (const raw of rawLines) {
-    const line = cleanLine(raw);
-    if (!line) continue;
-    const ws = extractWords(line);
-    if (!ws.length) continue;
+    const DEFAULT_CHANNELS = [
+      {
+            "id": "1779727195528-1c7d78335ea3c",
+            "url": "https://www.youtube.com/@LongaVideography",
+            "name": "LongaVideography",
+            "avatarUrl": "https://unavatar.io/youtube/LongaVideography",
+            "description": "🔔 Abonează-te gratuit la Longa Videography pentru mai multe filmări de excepție: \nhttps://www.youtube.com/@LongaVideography?sub_confirmation=1\n\nLonga Videography îți aduce direct pe ecran emoția și energia evenimentelor de neuitat.\nDacă ți-a plăcut montajul, lasă-ne un comentariu!\n\n📞 Contact Evenimente \u0026 Booking Longa Videography:\n☎️ Telefon / WhatsApp: 0764 390 462\n📩 Email: longavideography@gmail.com \n\nUrmărește #LongaVideography pe Social Media pentru imagini din spatele camerei:\n🎥 TikTok: https://www.tiktok.com/@nicusorlonga\n📷 Instagram: https://www.instagram.com/nicusorlonga\n👍 Facebook: https://www.facebook.com/profile.php?id=100063458172772\n\n---\n*Canal administrat de #AromaDigital*\nPentru promovare, distribuție digitală, management si Servicii Premium YouTube :\n\n🌐 Website: https://www.aromarecords.ro\n☎️ Telefon / WhatsApp: 0758 135 436\n📷 Instagram: https://www.instagram.com/aromadigital.ro\nFacebook: https://www.facebook.com/AromaDigital.ro\n🎥 TikTok: https://www.tiktok.com/@aromadigital.ro\n📩 Email: contact@aromarecords.ro\n \n\n📝 NOTĂ LEGALĂ \u0026 LICENȚIERE:\nToate drepturile patrimoniale și conexe aparțin în totalitate autorilor! \nMulțumim artiștilor interpreți, compozitorilor, producătorilor, caselor de discuri, colaboratorilor și, bineînțeles, clienților noștri pentru înțelegere și colaborare! ❤️\n\n*Atenție: S.C Longa Videography S.R.L deține licență oficială LOGDA pentru utilizarea operelor muzicale din acest material video.*\n\n© \u0026 ℗ S.C Longa Videography S.R.L \u0026 Aroma Records Digital\nToate drepturile sunt rezervate. Orice upload neautorizat al acestui videoclip este ilegal și va fi raportat către YouTube. \nUnauthorized reproduction is a violation of applicable laws. Please do not re-upload this video on your channel.\n\n#ToniBagiu #MuzicaBanateana #AromaRecordsDigital #ColajeDinBanat",
+            "createdAt": "2026-05-25T16:39:55.528Z"
+      },
+      {
+            "id": "1779727964077-57f37bae22571",
+            "url": "https://www.youtube.com/@BelcotaProductionEvents",
+            "name": "BelcotaProductionEvents",
+            "avatarUrl": "https://unavatar.io/youtube/BelcotaProductionEvents",
+            "description": "",
+            "createdAt": "2026-05-25T16:52:44.077Z"
+      },
+      {
+            "id": "1779727998914-b92409cb0694e",
+            "url": "https://www.youtube.com/@Belcota.Production",
+            "name": "Belcota Production",
+            "avatarUrl": "https://unavatar.io/youtube/Belcota.Production",
+            "description": "",
+            "createdAt": "2026-05-25T16:53:18.914Z"
+      },
+      {
+            "id": "1779728015342-42714bc17e55e8",
+            "url": "https://www.youtube.com/@PetruHumitaStudio",
+            "name": "PetruHumitaStudio",
+            "avatarUrl": "https://unavatar.io/youtube/PetruHumitaStudio",
+            "description": "",
+            "createdAt": "2026-05-25T16:53:35.343Z"
+      },
+      {
+            "id": "1779728033026-f0f58c2eb0b0f",
+            "url": "https://www.youtube.com/@GabrielTimaruVideography",
+            "name": "GabrielTimaruVideography",
+            "avatarUrl": "https://unavatar.io/youtube/GabrielTimaruVideography",
+            "description": "🔔 Susține canalul! Abonează-te gratuit la Gabriel Timaru Videography pentru cele mai noi producții video:\nhttps://www.youtube.com/channel/UCZ68J_43aciqvF8vEWP2PZw?sub_confirmation=1\n\nGabriel Timaru Videography transformă fiecare eveniment într-o amintire cinematografică. \nDacă apreciezi calitatea acestui video, lasă un Like 👍 și scrie-ne părerea ta în comentarii!\n\n📞 Contact Evenimente - Gabriel Timaru Videography:\n☎️ Telefon / WhatsApp: 0748 325 437\n📩 Email: contact@gabrieltimaru.ro\n\nUrmărește #GabrielTimaruVideography pe rețelele sociale:\n🎥 TikTok: https://www.tiktok.com/@gabriel.timaru\n📷 Instagram: https://www.instagram.com/gabrieltimaru_videography\n👍 Facebook: https://www.facebook.com/gabrieltimarufotovideo\nWebSite: https://www.gabrieltimaru.ro\n\n---\n*Canal administrat de #AromaDigital*\nServicii Premium YouTube, Promovare și Distribuție Digitală:\n\n🌐 Website: https://www.aromarecords.ro\n☎️ Telefon / WhatsApp: 0758 135 436\n📷 Instagram: https://www.instagram.com/aromadigital.ro\n👍 Facebook: https://www.facebook.com/AromaDigital.ro\n🎥 TikTok: https://www.tiktok.com/@aromadigital.ro\n📩 Email: contact@aromarecords.ro\n \n---\n📝 NOTĂ LEGALĂ \u0026 LICENȚIERE:\nToate drepturile patrimoniale și conexe aparțin în totalitate autorilor! \nMulțumim artiștilor, compozitorilor, caselor de discuri și clienților noștri pentru colaborarea frumoasă! ❤️\n\n*Atenție: Acest material video beneficiază de licență oficială LOGDA pentru utilizarea operelor muzicale.*\n\n© \u0026 ℗ 2026 Gabriel Timaru Videography \u0026 Aroma Records Digital\nToate drepturile sunt rezervate. Copierea sau reîncărcarea acestui videoclip pe alte canale este strict interzisă și atrage raportarea imediată.\n\n#GabrielTimaru #MuzicaDePetrecere #ColajeDinBanat #AromaRecordsDigital",
+            "createdAt": "2026-05-25T16:53:53.026Z"
+      },
+      {
+            "id": "1779728048707-904544347ea9c",
+            "url": "https://www.youtube.com/@HDVideoBanat",
+            "name": "HDVideoBanat",
+            "avatarUrl": "https://unavatar.io/youtube/HDVideoBanat",
+            "description": "",
+            "createdAt": "2026-05-25T16:54:08.707Z"
+      },
+      {
+            "id": "1779728072391-c6d3cf6f089c9",
+            "url": "https://www.youtube.com/@Man.Production",
+            "name": "Man Production",
+            "avatarUrl": "https://unavatar.io/youtube/Man.Production",
+            "description": "",
+            "createdAt": "2026-05-25T16:54:32.391Z"
+      },
+      {
+            "id": "1779728530692-5d09ec5430e79",
+            "url": "https://www.youtube.com/@StudioDITA.",
+            "name": "StudioDITA",
+            "avatarUrl": "https://unavatar.io/youtube/StudioDITA.",
+            "description": "",
+            "createdAt": "2026-05-25T17:02:10.692Z"
+      },
+      {
+            "id": "1779806901174-4222d4821a4fb",
+            "url": "https://youtube.com/@Mihaela.Petrovici",
+            "name": "Mihaela Petrovici",
+            "avatarUrl": "https://unavatar.io/youtube/Mihaela.Petrovici",
+            "description": "🔔 Aboneaza-te la canalul oficial de YT Mihaela Petrovici: \nhttps://aromarecords.ro/Mihaela.Petrovici\n\n☎️ 𝐂𝐎𝐍𝐓𝐀𝐂𝐓 𝐄𝐕𝐄𝐍𝐈𝐌𝐄𝐍𝐓𝐄: 0722 387 429 \n\nMihaela Petrovici online:\n👍 Facebook: https://www.facebook.com/mihaela.petrovici\n📷 Instagram: https://instagram.com/mihaela.petrovici\n🎥 TikTok: https://www.tiktok.com/@mihaelapetrovici29\n\nAsculta Mihaela Petrovici:\n📀 Spotify: https://tinyurl.com/MihaelaPetroviciSpotify\n💿 Apple Music: https://apple.co/3x59yCX\n\nFollow Aroma Records:\n🌐 Website: https://www.aromarecords.ro\n📷 Instagram: https://www.instagram.com/aromarecords.ro\n👍 Facebook: https://www.facebook.com/aromarecords.ro\n🎥TikTok: https://www.tiktok.com/@aromarecords\n📱Contact: 0758 135 436\n\n\n🎵 Linie melodică: Mihaela Petrovici\n✍️ Text: Adrian Drăgan\n🎹 Orchestrație: Sebastian Roșca\n\nInstrumentiști:\n🎺 Taragot: Bujor Polhac\n🎷 Saxofon: Marcel Duduma\n\n🎥 Imagine / Filmare: Andrei Vrăsmaș\n🏡 Locație filmări: Căsuța cu Povești, Criciova\n\n\n(C) \u0026 (P) 2026 Aroma Digital\nToate drepturile sunt rezervate. Orice upload neautorizat al acestui videoclip este ilegal si poate fi raportat oricand la Youtube. \nUnauthorized reproduction is a violation of applicable laws. In order to avoid copyright infringement, please, do not upload this song on your channel.\n\n#MihaelaPetrovici #AromaDigital #MuzicaPopulara #MuzicaBanateana",
+            "createdAt": "2026-05-26T14:48:21.174Z"
+      },
+      {
+            "id": "1779806976914-05993620e7741",
+            "url": "https://youtube.com/@GeorgianaVita.",
+            "name": "youtube.com",
+            "avatarUrl": "https://unavatar.io/youtube/GeorgianaVita.",
+            "description": "🔔 Aboneaza-te la canalul oficial de YT Georgiana Vița: \nhttps://aromarecords.ro/GeorgianaVita\n🎧 Descarca/Asculta ”Se uita lumea la mine\": https://bfan.link/se-uita-lumea-la-mine\n\nPentru Evenimente 📧 contact@aromarecords.ro 📱  0741 963 592 - Andrei \n\nFollow #GeorgianaVita:\n🎥 TikTok:  https://www.tiktok.com/@georgianavita\n📷 Instagram: https://www.instagram.com/georgianavita\n👍 Facebook: https://www.facebook.com/georgianavita\n🎶 Spotify:  https://bit.ly/GeorgianaVitaSpotify\n🎶 Apple Music: https://bit.ly/GeorgianaVitaAppleMusic\n\n\n\n📈 Canal Administrat de Aroma Digital: \n\nFollow #AromaDigital:\n🌐 Website: https://www.aromarecords.ro\n📷 Instagram: https://instagram.com/aromarecords.ro\n👍 Facebook: https://facebook.com/aromarecords.ro\n🎥TikTok: https://www.tiktok.com/@aromarecords\n📱Contact: 0758 135 436\n\n\n\n(C) \u0026 (P) 2025 Aroma Records Digital\nToate drepturile sunt rezervate. Orice upload neautorizat al acestui videoclip este ilegal si poate fi raportat oricand la Youtube. \nUnauthorized reproduction is a violation of applicable laws. In order to avoid copyright infringement, please, do not upload this song on your channel.\n\n#MuzicaPopulara #MuzicaDePetrecere #MuzicaDinBanat",
+            "createdAt": "2026-05-26T14:49:36.914Z"
+      }
+];
 
-    const lineObj = {
-      text: line,
-      words: ws,
-      startWordIndex: words.length,
-      endWordIndex: words.length + ws.length - 1
+    const app = {
+      channels: [],
+      editingId: null,
+      statusTimer: null,
     };
-    lyricsLines.push(lineObj);
-    const lineIndex = lyricsLines.length - 1;
 
-    for (const w of ws) {
-      words.push({ word: w, lineIndex, time: null });
+    const els = {
+      row: document.getElementById('channelsRow'),
+      modal: document.getElementById('modal'),
+      form: document.getElementById('channelForm'),
+      modalTitle: document.getElementById('modalTitle'),
+      channelUrl: document.getElementById('channelUrl'),
+      channelName: document.getElementById('channelName'),
+      channelAvatar: document.getElementById('channelAvatar'),
+      openAddBtn: document.getElementById('openAddBtn'),
+      cancelBtn: document.getElementById('cancelBtn'),
+      autoFillBtn: document.getElementById('autoFillBtn'),
+      clearAllBtn: document.getElementById('clearAllBtn'),
+      saveHtmlBtn: document.getElementById('saveHtmlBtn'),
+      openChannelsMenuBtn: document.getElementById('openChannelsMenuBtn'),
+      channelsMenu: document.getElementById('channelsMenu'),
+      closeChannelsMenuBtn: document.getElementById('closeChannelsMenuBtn'),
+      channelSearch: document.getElementById('channelSearch'),
+      channelsMenuList: document.getElementById('channelsMenuList'),
+      status: document.getElementById('status'),
+    };
+
+    function save() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(app.channels));
     }
-  }
 
-  renderWordList();
-  updateCurrentWord();
-  updateButtons();
-  setStatus(`Lyrics încărcat: ${words.length} cuvinte, ${lyricsLines.length} linii.`);
-}
+    function load() {
+      try {
+        const savedChannels = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
 
-audioInput.addEventListener('change', async () => {
-  const file = audioInput.files[0];
-  if (!file) return;
-
-  const url = URL.createObjectURL(file);
-  audio.src = url;
-
-  setStatus('Decodez audio și construiesc waveform...');
-  const arrayBuffer = await file.arrayBuffer();
-  const AudioContext = window.AudioContext || window.webkitAudioContext;
-  const ac = new AudioContext();
-  audioBuffer = await ac.decodeAudioData(arrayBuffer.slice(0));
-
-  buildPeaks();
-  viewCenter = 0;
-  updateButtons();
-  draw();
-  setStatus(`Audio încărcat: ${file.name}, ${fmtClock(audioBuffer.duration)}.`);
-});
-
-lyricsInput.addEventListener('change', async () => {
-  const file = lyricsInput.files[0];
-  if (!file) return;
-  const text = await file.text();
-  loadLyricsText(text);
-});
-
-function buildPeaks() {
-  const channel = audioBuffer.getChannelData(0);
-  const sampleRate = audioBuffer.sampleRate;
-  const pixelsPerSecond = 100;
-  const bucket = Math.max(1, Math.floor(sampleRate / pixelsPerSecond));
-  const count = Math.ceil(channel.length / bucket);
-  peaks = new Float32Array(count);
-  for (let i = 0; i < count; i++) {
-    let max = 0;
-    const start = i * bucket;
-    const end = Math.min(channel.length, start + bucket);
-    for (let j = start; j < end; j++) {
-      const v = Math.abs(channel[j]);
-      if (v > max) max = v;
+        if (Array.isArray(savedChannels) && savedChannels.length) {
+          app.channels = savedChannels;
+        } else {
+          app.channels = Array.isArray(DEFAULT_CHANNELS) ? DEFAULT_CHANNELS : [];
+          if (app.channels.length) save();
+        }
+      } catch {
+        app.channels = Array.isArray(DEFAULT_CHANNELS) ? DEFAULT_CHANNELS : [];
+        if (app.channels.length) save();
+      }
     }
-    peaks[i] = max;
-  }
-  peakSecondsPerBucket = bucket / sampleRate;
-}
 
-function updateButtons() {
-  const ready = !!audioBuffer && words.length > 0;
-  playBtn.disabled = !audioBuffer;
-  markBtn.disabled = !ready;
-  backBtn.disabled = !ready;
-  zoomInBtn.disabled = !audioBuffer;
-  zoomOutBtn.disabled = !audioBuffer;
-  exportAssBtn.disabled = !ready;
-  exportWordSrtBtn.disabled = !ready;
-  exportLineSrtBtn.disabled = !ready;
-}
-
-function currentTime() {
-  return audio.currentTime || 0;
-}
-
-function seek(t) {
-  if (!audioBuffer) return;
-  t = Math.max(0, Math.min(audioBuffer.duration, t));
-  audio.currentTime = t;
-  viewCenter = t;
-  draw();
-  updateTime();
-}
-
-playBtn.addEventListener('click', () => {
-  if (!audio.src) return;
-  if (audio.paused) audio.play();
-  else audio.pause();
-});
-
-markBtn.addEventListener('click', markWord);
-backBtn.addEventListener('click', backWord);
-zoomInBtn.addEventListener('click', () => { zoomSeconds = Math.max(1, zoomSeconds / 1.5); draw(); });
-zoomOutBtn.addEventListener('click', () => { zoomSeconds = Math.min(120, zoomSeconds * 1.5); draw(); });
-exportAssBtn.addEventListener('click', exportASS);
-exportWordSrtBtn.addEventListener('click', exportWordSRT);
-exportLineSrtBtn.addEventListener('click', exportLineSRT);
-
-function markWord() {
-  if (!words.length || wordIndex >= words.length) return;
-  words[wordIndex].time = currentTime();
-  wordIndex++;
-  updateCurrentWord();
-  renderWordList();
-  draw();
-}
-
-function backWord() {
-  if (wordIndex <= 0) return;
-  wordIndex--;
-  words[wordIndex].time = null;
-  updateCurrentWord();
-  renderWordList();
-  draw();
-}
-
-function updateCurrentWord() {
-  if (!words.length) {
-    currentWordEl.textContent = 'Încarcă lyrics';
-    progressEl.textContent = '0 / 0';
-    linePreviewEl.textContent = 'Linia curentă apare aici';
-    return;
-  }
-  if (wordIndex >= words.length) {
-    currentWordEl.textContent = 'GATA';
-    progressEl.textContent = `${words.length} / ${words.length}`;
-    linePreviewEl.textContent = 'Toate cuvintele sunt marcate. Exportă.';
-    return;
-  }
-  const w = words[wordIndex];
-  currentWordEl.textContent = w.word;
-  progressEl.textContent = `${wordIndex + 1} / ${words.length}`;
-  linePreviewEl.textContent = lyricsLines[w.lineIndex]?.text || '';
-  const item = document.querySelector(`[data-word-index="${wordIndex}"]`);
-  if (item) item.scrollIntoView({ block: 'nearest' });
-}
-
-function renderWordList() {
-  wordListEl.innerHTML = '';
-  const frag = document.createDocumentFragment();
-  words.forEach((w, i) => {
-    const div = document.createElement('div');
-    div.className = 'wordItem' + (i === wordIndex ? ' current' : '') + (w.time !== null ? ' done' : '');
-    div.dataset.wordIndex = String(i);
-    div.innerHTML = `<span>${i+1}. ${escapeHtml(w.word)}</span><span class="time">${w.time === null ? '—' : fmtClock(w.time)}</span>`;
-    div.addEventListener('click', () => {
-      wordIndex = i;
-      updateCurrentWord();
-      renderWordList();
-      if (w.time !== null) seek(w.time);
-    });
-    frag.appendChild(div);
-  });
-  wordListEl.appendChild(frag);
-}
-
-function escapeHtml(s) {
-  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-
-function resizeCanvas() {
-  const rect = canvas.getBoundingClientRect();
-  const dpr = window.devicePixelRatio || 1;
-  canvas.width = Math.max(1, Math.floor(rect.width * dpr));
-  canvas.height = Math.max(1, Math.floor(rect.height * dpr));
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-}
-window.addEventListener('resize', () => { resizeCanvas(); draw(); });
-resizeCanvas();
-
-function visibleRange() {
-  const t = audioBuffer ? currentTime() : 0;
-  if (audio && !audio.paused) viewCenter = t;
-  const center = viewCenter || t;
-  const start = Math.max(0, center - zoomSeconds / 2);
-  const end = Math.min(audioBuffer?.duration || zoomSeconds, start + zoomSeconds);
-  return [Math.max(0, end - zoomSeconds), end];
-}
-
-function draw() {
-  resizeCanvas();
-  const w = canvas.clientWidth;
-  const h = canvas.clientHeight;
-  ctx.clearRect(0, 0, w, h);
-  ctx.fillStyle = '#0a0b0e';
-  ctx.fillRect(0, 0, w, h);
-
-  if (!audioBuffer || !peaks.length) {
-    ctx.fillStyle = '#aab0bd';
-    ctx.font = '18px -apple-system, BlinkMacSystemFont, Segoe UI, Arial';
-    ctx.fillText('Încarcă MP3/WAV ca să vezi waveform-ul.', 24, 40);
-    return;
-  }
-
-  const [start, end] = visibleRange();
-  const duration = end - start;
-  const mid = h / 2;
-
-  // grid
-  ctx.strokeStyle = '#20242e';
-  ctx.lineWidth = 1;
-  const gridStep = duration <= 4 ? 0.25 : duration <= 12 ? 1 : duration <= 30 ? 2 : 5;
-  const firstGrid = Math.ceil(start / gridStep) * gridStep;
-  ctx.fillStyle = '#646b7a';
-  ctx.font = '12px monospace';
-  for (let t = firstGrid; t <= end; t += gridStep) {
-    const x = (t - start) / duration * w;
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, h);
-    ctx.stroke();
-    ctx.fillText(t.toFixed(duration <= 4 ? 2 : 1), x + 3, 14);
-  }
-
-  // waveform
-  ctx.fillStyle = '#7aa2ff';
-  const startIdx = Math.floor(start / peakSecondsPerBucket);
-  const endIdx = Math.min(peaks.length - 1, Math.ceil(end / peakSecondsPerBucket));
-  const ampScale = h * 0.43;
-
-  ctx.beginPath();
-  for (let i = startIdx; i <= endIdx; i++) {
-    const t = i * peakSecondsPerBucket;
-    const x = (t - start) / duration * w;
-    const y = mid - peaks[i] * ampScale;
-    if (i === startIdx) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  }
-  for (let i = endIdx; i >= startIdx; i--) {
-    const t = i * peakSecondsPerBucket;
-    const x = (t - start) / duration * w;
-    const y = mid + peaks[i] * ampScale;
-    ctx.lineTo(x, y);
-  }
-  ctx.closePath();
-  ctx.globalAlpha = 0.85;
-  ctx.fill();
-  ctx.globalAlpha = 1;
-
-  // marked words
-  ctx.font = '12px -apple-system, BlinkMacSystemFont, Segoe UI, Arial';
-  words.forEach((word, idx) => {
-    if (word.time === null || word.time < start || word.time > end) return;
-    const x = (word.time - start) / duration * w;
-    ctx.strokeStyle = idx === wordIndex ? '#8cffc1' : '#f5f7fb';
-    ctx.lineWidth = idx === wordIndex ? 3 : 1;
-    ctx.beginPath();
-    ctx.moveTo(x, 20);
-    ctx.lineTo(x, h - 20);
-    ctx.stroke();
-    ctx.save();
-    ctx.translate(x + 4, 50);
-    ctx.rotate(-Math.PI / 2);
-    ctx.fillStyle = '#f5f7fb';
-    ctx.fillText(word.word, 0, 0);
-    ctx.restore();
-  });
-
-  // playhead
-  const t = currentTime();
-  if (t >= start && t <= end) {
-    const x = (t - start) / duration * w;
-    ctx.strokeStyle = '#ff7676';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, h);
-    ctx.stroke();
-  }
-}
-
-function canvasToTime(e) {
-  const rect = canvas.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const [start, end] = visibleRange();
-  return start + (x / rect.width) * (end - start);
-}
-
-canvas.addEventListener('mousedown', (e) => {
-  dragging = true;
-  audio.pause();
-  seek(canvasToTime(e));
-});
-window.addEventListener('mousemove', (e) => {
-  if (!dragging) return;
-  seek(canvasToTime(e));
-});
-window.addEventListener('mouseup', () => { dragging = false; });
-
-canvas.addEventListener('wheel', (e) => {
-  e.preventDefault();
-  if (e.deltaY < 0) zoomSeconds = Math.max(1, zoomSeconds / 1.2);
-  else zoomSeconds = Math.min(120, zoomSeconds * 1.2);
-  draw();
-}, { passive: false });
-
-document.addEventListener('keydown', (e) => {
-  if (e.target && ['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
-
-  if (e.code === 'Space') {
-    e.preventDefault();
-    playBtn.click();
-  } else if (e.key === 'd' || e.key === 'D') {
-    e.preventDefault();
-    markWord();
-  } else if (e.key === 'p' || e.key === 'P') {
-    e.preventDefault();
-    playBtn.click();
-  } else if (e.key === 'Backspace') {
-    e.preventDefault();
-    backWord();
-  } else if (e.key === 'ArrowLeft') {
-    e.preventDefault();
-    seek(currentTime() - (e.shiftKey ? 0.10 : 0.02));
-  } else if (e.key === 'ArrowRight') {
-    e.preventDefault();
-    seek(currentTime() + (e.shiftKey ? 0.10 : 0.02));
-  } else if (e.key === '+' || e.key === '=') {
-    zoomSeconds = Math.max(1, zoomSeconds / 1.5);
-    draw();
-  } else if (e.key === '-') {
-    zoomSeconds = Math.min(120, zoomSeconds * 1.5);
-    draw();
-  } else if (e.key === 'Enter') {
-    e.preventDefault();
-    // Seek cu pre-roll la cuvântul curent, util pentru verificare
-    const w = words[wordIndex] || words[wordIndex - 1];
-    if (w && w.time !== null) {
-      const pr = parseFloat(preRollInput.value || '1') || 0;
-      seek(Math.max(0, w.time - pr));
+    function uid() {
+      return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
     }
-  }
-});
 
-function updateTime() {
-  timeDisplayEl.textContent = fmtClock(currentTime());
-}
+    function showStatus(message) {
+      clearTimeout(app.statusTimer);
+      els.status.textContent = message;
+      els.status.classList.add('show');
+      app.statusTimer = setTimeout(() => els.status.classList.remove('show'), 3500);
+    }
 
-function loop() {
-  updateTime();
-  if (audioBuffer && !audio.paused) {
-    viewCenter = currentTime();
-    draw();
-  }
-  raf = requestAnimationFrame(loop);
-}
-loop();
+    function escapeHtml(value = '') {
+      return String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
 
-function fmtClock(seconds) {
-  seconds = Math.max(0, seconds || 0);
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  const ms = Math.floor((seconds - Math.floor(seconds)) * 1000);
-  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(ms).padStart(3,'0')}`;
-}
+    function initialsFromName(name = '') {
+      const parts = String(name).trim().split(/\s+/).filter(Boolean);
+      if (!parts.length) return 'YT';
+      if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
 
-function fmtAssTime(seconds) {
-  let cs = Math.round(Math.max(0, seconds) * 100);
-  const h = Math.floor(cs / 360000); cs %= 360000;
-  const m = Math.floor(cs / 6000); cs %= 6000;
-  const s = Math.floor(cs / 100); cs %= 100;
-  return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(cs).padStart(2,'0')}`;
-}
+    function normalizeUrl(url) {
+      const value = String(url || '').trim();
+      if (!value) return '';
+      if (/^https?:\/\//i.test(value)) return value;
+      return `https://${value}`;
+    }
 
-function fmtSrtTime(seconds) {
-  let ms = Math.round(Math.max(0, seconds) * 1000);
-  const h = Math.floor(ms / 3600000); ms %= 3600000;
-  const m = Math.floor(ms / 60000); ms %= 60000;
-  const s = Math.floor(ms / 1000); ms %= 1000;
-  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')},${String(ms).padStart(3,'0')}`;
-}
+    function getHandleFromUrl(url) {
+      const value = String(url || '').trim();
+      const match = value.match(/youtube\.com\/@([^/?#]+)/i) || value.match(/@([A-Za-z0-9._-]+)/);
+      return match ? match[1] : '';
+    }
 
-function ensureTimes() {
-  if (!words.length) throw new Error('Nu există lyrics.');
-  const marked = words.filter(w => w.time !== null).length;
-  if (marked < 2) throw new Error('Marchează cel puțin 2 cuvinte.');
-  let last = 0;
-  for (const w of words) {
-    if (w.time === null) w.time = last + 0.3;
-    last = w.time;
-  }
-}
+    function guessNameFromUrl(url) {
+      const handle = getHandleFromUrl(url);
+      if (handle) {
+        return handle
+          .replaceAll('-', ' ')
+          .replaceAll('_', ' ')
+          .replaceAll('.', ' ')
+          .replace(/\b\w/g, (letter) => letter.toUpperCase());
+      }
+      try {
+        const parsed = new URL(normalizeUrl(url));
+        const lastPart = parsed.pathname.split('/').filter(Boolean).pop() || parsed.hostname;
+        return lastPart.replace('@', '').replaceAll('-', ' ').replaceAll('_', ' ');
+      } catch {
+        return '';
+      }
+    }
 
-function download(filename, text) {
-  const blob = new Blob([text], {type: 'text/plain;charset=utf-8'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
+    function avatarCandidates(url) {
+      const handle = getHandleFromUrl(url);
+      if (!handle) return [];
+      return [
+        `https://unavatar.io/youtube/${encodeURIComponent(handle)}`,
+        `https://unavatar.io/${encodeURIComponent(handle)}`,
+      ];
+    }
 
-function exportASS() {
-  try { ensureTimes(); } catch (e) { alert(e.message); return; }
+    async function autoFillFromUrl(url) {
+      const normalized = normalizeUrl(url);
+      let name = guessNameFromUrl(normalized);
+      let avatarUrl = avatarCandidates(normalized)[0] || '';
 
-  const header = `[Script Info]
-Title: Karaoke Timed Lyrics
-ScriptType: v4.00+
-PlayResX: 1920
-PlayResY: 1080
+      // oEmbed oferă de obicei numele canalului pentru link-uri YouTube publice.
+      try {
+        const response = await fetch(`https://noembed.com/embed?url=${encodeURIComponent(normalized)}`);
+        const data = await response.json();
+        if (data && data.author_name) name = data.author_name;
+      } catch {
+        // Dacă request-ul extern e blocat, rămânem pe numele ghicit din link.
+      }
 
-[V4+ Styles]
-Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,Arial,72,&H00FFFFFF,&H0000FFFF,&H00000000,&H64000000,1,0,0,0,100,100,0,0,1,4,0,2,100,100,150,1
+      return { name, avatarUrl };
+    }
 
-[Events]
-Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
-`;
 
-  let out = header;
-  lyricsLines.forEach((line, lineIdx) => {
-    const startI = line.startWordIndex;
-    const endI = line.endWordIndex;
-    const lineWords = words.slice(startI, endI + 1);
-    const lineStart = lineWords[0].time;
-    const lineEnd = lineIdx + 1 < lyricsLines.length
-      ? words[lyricsLines[lineIdx + 1].startWordIndex].time
-      : lineWords[lineWords.length - 1].time + 1.2;
+    function openChannelsMenu() {
+      renderChannelsMenu();
+      els.channelsMenu.classList.add('open');
+      setTimeout(() => els.channelSearch.focus(), 50);
+    }
 
-    const parts = lineWords.map((item, j) => {
-      const cur = item.time;
-      const nxt = j + 1 < lineWords.length ? lineWords[j + 1].time : lineEnd;
-      const durCs = Math.max(1, Math.round((nxt - cur) * 100));
-      return `{\\k${durCs}}${item.word}`;
+    function closeChannelsMenu() {
+      els.channelsMenu.classList.remove('open');
+      els.channelSearch.value = '';
+    }
+
+    function createChannelMenuItem(channel) {
+      const safeName = escapeHtml(channel.name || 'Canal YouTube');
+      const safeUrl = escapeHtml(channel.url || '');
+      const hasAvatar = Boolean(channel.avatarUrl && channel.avatarUrl.trim());
+
+      return `
+        <button class="channel-jump-btn" type="button" data-jump="${escapeHtml(channel.id)}">
+          <span class="channel-jump-avatar">
+            ${hasAvatar ? `<img src="${escapeHtml(channel.avatarUrl)}" alt="${safeName}" onerror="this.remove(); this.parentElement.textContent='${escapeHtml(initialsFromName(channel.name))}'" />` : escapeHtml(initialsFromName(channel.name))}
+          </span>
+          <span>
+            <span class="channel-jump-name">${safeName}</span>
+            <span class="channel-jump-link">${safeUrl}</span>
+          </span>
+        </button>
+      `;
+    }
+
+    function renderChannelsMenu() {
+      const query = String(els.channelSearch.value || '').trim().toLowerCase();
+      const filtered = app.channels.filter((channel) => {
+        const name = String(channel.name || '').toLowerCase();
+        const url = String(channel.url || '').toLowerCase();
+        return !query || name.includes(query) || url.includes(query);
+      });
+
+      if (!app.channels.length) {
+        els.channelsMenuList.innerHTML = '<div class="channels-menu-empty">Nu ai canale salvate încă. Apasă pe + Youtube Channel ca să adaugi primul canal.</div>';
+        return;
+      }
+
+      if (!filtered.length) {
+        els.channelsMenuList.innerHTML = '<div class="channels-menu-empty">Nu am găsit niciun canal cu acest nume.</div>';
+        return;
+      }
+
+      els.channelsMenuList.innerHTML = filtered.map(createChannelMenuItem).join('');
+    }
+
+    function scrollToChannel(id) {
+      const cards = [...document.querySelectorAll('.channel-card')];
+      const card = cards.find((item) => item.dataset.id === id);
+      if (!card) return;
+
+      closeChannelsMenu();
+      card.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      card.classList.remove('channel-highlight');
+      void card.offsetWidth;
+      card.classList.add('channel-highlight');
+      window.setTimeout(() => card.classList.remove('channel-highlight'), 1300);
+    }
+
+    function openModal(channel = null) {
+      app.editingId = channel ? channel.id : null;
+      els.modalTitle.textContent = channel ? 'Editează canal' : 'Adaugă canal';
+      els.channelUrl.value = channel?.url || '';
+      els.channelName.value = channel?.name || '';
+      els.channelAvatar.value = channel?.avatarUrl || '';
+      els.modal.classList.add('open');
+      setTimeout(() => els.channelUrl.focus(), 50);
+    }
+
+    function closeModal() {
+      els.modal.classList.remove('open');
+      app.editingId = null;
+      els.form.reset();
+    }
+
+    function createChannelCard(channel) {
+      const description = channel.description || '';
+      const safeUrl = escapeHtml(channel.url || '#');
+      const safeName = escapeHtml(channel.name || 'Canal YouTube');
+      const hasAvatar = Boolean(channel.avatarUrl && channel.avatarUrl.trim());
+
+      return `
+        <article class="channel-card" data-id="${escapeHtml(channel.id)}">
+          <div class="channel-head">
+            <div class="avatar-wrap">
+              ${hasAvatar ? `<img src="${escapeHtml(channel.avatarUrl)}" alt="${safeName}" onerror="this.remove(); this.parentElement.textContent='${escapeHtml(initialsFromName(channel.name))}'" />` : escapeHtml(initialsFromName(channel.name))}
+            </div>
+            <div>
+              <h3 class="channel-name">${safeName}</h3>
+              <a class="channel-link" href="${safeUrl}" target="_blank" rel="noreferrer">${safeUrl}</a>
+            </div>
+          </div>
+
+          <div class="description-box">
+            <label>Descriere</label>
+            <textarea data-description="${escapeHtml(channel.id)}" placeholder="Scrie aici descrierea canalului...">${escapeHtml(description)}</textarea>
+          </div>
+
+          <div class="card-actions">
+            <div class="card-actions-left">
+              <a class="icon-btn" href="${safeUrl}" target="_blank" rel="noreferrer" title="Deschide canalul">▶</a>
+            </div>
+            <div class="card-actions-right">
+              <button class="icon-btn success" type="button" data-edit="${escapeHtml(channel.id)}" title="Editează canalul">✎</button>
+              <button class="icon-btn danger" type="button" data-delete="${escapeHtml(channel.id)}" title="Șterge canalul">×</button>
+            </div>
+          </div>
+        </article>
+      `;
+    }
+
+    function render() {
+      const cards = app.channels.map(createChannelCard).join('');
+      const empty = app.channels.length
+        ? ''
+        : `<div class="empty-state"><div><strong>Nu ai canale încă.</strong><br />Apasă pe plusul din dreapta și adaugă primul canal.</div></div>`;
+
+      const addCard = `
+        <button class="add-card" type="button" id="addCardBtn" aria-label="Adaugă canal nou">
+          <div>
+            <div class="plus-circle">+</div>
+            <div class="add-copy">Adaugă alt canal</div>
+          </div>
+        </button>
+      `;
+
+      els.row.innerHTML = `${cards}${empty}${addCard}`;
+    }
+
+    function updateDescription(id, value) {
+      const channel = app.channels.find((item) => item.id === id);
+      if (!channel) return;
+      channel.description = value;
+      save();
+    }
+
+    async function fillFormAutomatically() {
+      const url = normalizeUrl(els.channelUrl.value);
+      if (!url) {
+        showStatus('Pune mai întâi link-ul canalului.');
+        return;
+      }
+
+      els.autoFillBtn.disabled = true;
+      els.autoFillBtn.textContent = 'Se completează...';
+
+      const data = await autoFillFromUrl(url);
+      if (!els.channelName.value.trim() && data.name) els.channelName.value = data.name;
+      if (!els.channelAvatar.value.trim() && data.avatarUrl) els.channelAvatar.value = data.avatarUrl;
+
+      els.autoFillBtn.disabled = false;
+      els.autoFillBtn.textContent = 'Completează automat';
+      showStatus('Am completat ce am putut din link.');
+    }
+
+
+    function channelsToDefaultCode() {
+      return JSON.stringify(app.channels, null, 6)
+        .replace(/</g, '\\u003c')
+        .replace(/>/g, '\\u003e')
+        .replace(/&/g, '\\u0026');
+    }
+
+    function createUpdatedHtmlSource() {
+      save();
+
+      let htmlSource = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+      const channelsCode = channelsToDefaultCode();
+      const defaultBlock = `const DEFAULT_CHANNELS = ${channelsCode};`;
+
+      if (/const DEFAULT_CHANNELS = [\s\S]*?;\n\n    const app =/.test(htmlSource)) {
+        htmlSource = htmlSource.replace(
+          /const DEFAULT_CHANNELS = [\s\S]*?;\n\n    const app =/,
+          `${defaultBlock}\n\n    const app =`
+        );
+      } else {
+        htmlSource = htmlSource.replace(
+          "const STORAGE_KEY = 'aroma-horizontal-youtube-channels-v1';",
+          "const STORAGE_KEY = 'aroma-horizontal-youtube-channels-v1';\n\n    " + defaultBlock
+        );
+      }
+
+      htmlSource = htmlSource.replace(/<section id="channelsRow" class="channels-row" aria-label="Lista canalelor">[\s\S]*?<\/section>/, '<section id="channelsRow" class="channels-row" aria-label="Lista canalelor"></section>');
+
+      return htmlSource;
+    }
+
+    function downloadUpdatedHtml() {
+      const htmlSource = createUpdatedHtmlSource();
+      const blob = new Blob([htmlSource], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'index.html';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      showStatus('Am generat index.html actualizat cu toate canalele salvate în cod.');
+    }
+
+    els.openAddBtn.addEventListener('click', () => openModal());
+    els.saveHtmlBtn.addEventListener('click', downloadUpdatedHtml);
+    els.cancelBtn.addEventListener('click', closeModal);
+    els.autoFillBtn.addEventListener('click', fillFormAutomatically);
+    els.openChannelsMenuBtn.addEventListener('click', openChannelsMenu);
+    els.closeChannelsMenuBtn.addEventListener('click', closeChannelsMenu);
+    els.channelSearch.addEventListener('input', renderChannelsMenu);
+
+    els.modal.addEventListener('click', (event) => {
+      if (event.target === els.modal) closeModal();
     });
 
-    out += `Dialogue: 0,${fmtAssTime(lineStart)},${fmtAssTime(lineEnd)},Default,,0,0,0,,${parts.join(' ')}\n`;
-  });
+    els.channelsMenu.addEventListener('click', (event) => {
+      if (event.target === els.channelsMenu) closeChannelsMenu();
+      const jumpId = event.target.closest('[data-jump]')?.dataset?.jump;
+      if (jumpId) scrollToChannel(jumpId);
+    });
 
-  download('lyrics_karaoke_timed.ass', out);
-}
+    els.channelUrl.addEventListener('blur', async () => {
+      if (!els.channelUrl.value.trim()) return;
+      if (els.channelName.value.trim() && els.channelAvatar.value.trim()) return;
+      const data = await autoFillFromUrl(els.channelUrl.value);
+      if (!els.channelName.value.trim()) els.channelName.value = data.name;
+      if (!els.channelAvatar.value.trim()) els.channelAvatar.value = data.avatarUrl;
+    });
 
-function exportWordSRT() {
-  try { ensureTimes(); } catch (e) { alert(e.message); return; }
+    els.form.addEventListener('submit', async (event) => {
+      event.preventDefault();
 
-  // CapCut linked export:
-  // - fără overlap
-  // - fără gap/pauză între captions
-  // - end-ul fiecărui cuvânt = start-ul următorului
-  const MIN_STEP = 0.04; // doar corectează click-uri puse accidental înapoi
+      const url = normalizeUrl(els.channelUrl.value);
+      if (!url) return;
 
-  const safe = words.map(w => ({ word: w.word, time: w.time }));
-  let lastStart = -999;
+      let name = els.channelName.value.trim();
+      let avatarUrl = els.channelAvatar.value.trim();
 
-  for (let i = 0; i < safe.length; i++) {
-    if (safe[i].time <= lastStart) {
-      safe[i].time = lastStart + MIN_STEP;
-    }
-    lastStart = safe[i].time;
-  }
+      if (!name || !avatarUrl) {
+        const auto = await autoFillFromUrl(url);
+        name = name || auto.name || 'Canal YouTube';
+        avatarUrl = avatarUrl || auto.avatarUrl || '';
+      }
 
-  let out = '';
-  for (let i = 0; i < safe.length; i++) {
-    const start = safe[i].time;
-    let end;
+      if (app.editingId) {
+        const channel = app.channels.find((item) => item.id === app.editingId);
+        if (channel) {
+          channel.url = url;
+          channel.name = name;
+          channel.avatarUrl = avatarUrl;
+        }
+        showStatus('Canalul a fost actualizat.');
+      } else {
+        app.channels.push({
+          id: uid(),
+          url,
+          name,
+          avatarUrl,
+          description: '',
+          createdAt: new Date().toISOString(),
+        });
+        showStatus('Canalul a fost salvat.');
+      }
 
-    if (i + 1 < safe.length) {
-      end = safe[i + 1].time;
-    } else {
-      end = start + 0.5;
-    }
+      save();
+      closeModal();
+      render();
+      els.row.scrollTo({ left: els.row.scrollWidth, behavior: 'smooth' });
+    });
 
-    out += `${i + 1}\n${fmtSrtTime(start)} --> ${fmtSrtTime(end)}\n${safe[i].word}\n\n`;
-  }
+    els.row.addEventListener('input', (event) => {
+      const id = event.target?.dataset?.description;
+      if (id) updateDescription(id, event.target.value);
+    });
 
-  download('lyrics_words_timed_LINKED_NO_GAP.srt', out);
-}
+    els.row.addEventListener('click', (event) => {
+      const addCard = event.target.closest('#addCardBtn');
+      const editId = event.target.dataset?.edit;
+      const deleteId = event.target.dataset?.delete;
 
-function exportLineSRT() {
-  try { ensureTimes(); } catch (e) { alert(e.message); return; }
-  let out = '';
-  lyricsLines.forEach((line, idx) => {
-    const start = words[line.startWordIndex].time;
-    const end = idx + 1 < lyricsLines.length
-      ? words[lyricsLines[idx + 1].startWordIndex].time
-      : words[line.endWordIndex].time + 1.2;
-    out += `${idx + 1}\n${fmtSrtTime(start)} --> ${fmtSrtTime(end)}\n${line.text}\n\n`;
-  });
-  download('lyrics_lines_timed.srt', out);
-}
-</script>
-</body>
-</html>
+      if (addCard) {
+        openModal();
+        return;
+      }
+
+      if (editId) {
+        const channel = app.channels.find((item) => item.id === editId);
+        if (channel) openModal(channel);
+        return;
+      }
+
+      if (deleteId) {
+        const channel = app.channels.find((item) => item.id === deleteId);
+        const confirmed = confirm(`Ștergi canalul „${channel?.name || 'YouTube'}”?`);
+        if (!confirmed) return;
+        app.channels = app.channels.filter((item) => item.id !== deleteId);
+        save();
+        render();
+        showStatus('Canalul a fost șters.');
+      }
+    });
+
+    els.clearAllBtn.addEventListener('click', () => {
+      if (!app.channels.length) return;
+      const confirmed = confirm('Sigur ștergi toate canalele salvate în browser?');
+      if (!confirmed) return;
+      app.channels = [];
+      save();
+      render();
+      showStatus('Toate canalele au fost șterse.');
+    });
+
+    load();
+    render();
+  </script>
+
+
+</body></html>
