@@ -1,0 +1,821 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Karaoke Word Timer</title>
+  <style>
+    :root {
+      --bg: #101114;
+      --panel: #181a20;
+      --panel2: #20232b;
+      --text: #f5f7fb;
+      --muted: #aab0bd;
+      --accent: #7aa2ff;
+      --accent2: #8cffc1;
+      --danger: #ff7676;
+      --line: #303542;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      overflow: hidden;
+    }
+    header {
+      height: 58px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 0 18px;
+      border-bottom: 1px solid var(--line);
+      background: #0c0d10;
+    }
+    header h1 {
+      font-size: 18px;
+      margin: 0;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .files {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      font-size: 13px;
+    }
+    input[type=file] {
+      color: var(--muted);
+      max-width: 230px;
+    }
+    main {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      height: calc(100vh - 58px);
+    }
+    aside {
+      border-right: 1px solid var(--line);
+      background: var(--panel);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .side-top {
+      padding: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+    .side-top .big {
+      font-size: 34px;
+      line-height: 1.1;
+      font-weight: 800;
+      color: var(--accent2);
+      word-break: break-word;
+    }
+    .side-top .small {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    #wordList {
+      overflow: auto;
+      padding: 8px;
+      flex: 1;
+    }
+    .wordItem {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 7px 8px;
+      border-radius: 8px;
+      font-size: 14px;
+      border: 1px solid transparent;
+      cursor: pointer;
+    }
+    .wordItem:hover { background: var(--panel2); }
+    .wordItem.current {
+      background: rgba(122,162,255,.18);
+      border-color: rgba(122,162,255,.5);
+      color: #fff;
+    }
+    .wordItem.done .time { color: var(--accent2); }
+    .wordItem .time {
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    section {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .toolbar {
+      padding: 12px 16px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel);
+    }
+    button {
+      border: 1px solid #3a4050;
+      background: #232733;
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    button:hover { background: #2b3040; }
+    button.primary { background: #2b4b96; border-color: #416bd0; }
+    button.danger { background: #5a2525; border-color: #8d3939; }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+    .timeDisplay {
+      font-size: 24px;
+      font-variant-numeric: tabular-nums;
+      font-weight: 800;
+      margin-left: auto;
+    }
+    .subbar {
+      padding: 10px 16px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      color: var(--muted);
+      border-bottom: 1px solid var(--line);
+      background: #14161b;
+    }
+    .linePreview {
+      font-size: 22px;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .canvasWrap {
+      flex: 1;
+      min-height: 0;
+      position: relative;
+      background: #0a0b0e;
+      display: flex;
+      flex-direction: column;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: crosshair;
+    }
+    .hint {
+      position: absolute;
+      bottom: 14px;
+      left: 16px;
+      right: 16px;
+      color: rgba(255,255,255,.72);
+      font-size: 13px;
+      pointer-events: none;
+      text-shadow: 0 1px 2px #000;
+    }
+    .status {
+      padding: 8px 16px;
+      color: var(--muted);
+      border-top: 1px solid var(--line);
+      background: #111319;
+      font-size: 13px;
+      min-height: 33px;
+    }
+    .kbd {
+      display: inline-block;
+      border: 1px solid #555c6e;
+      border-bottom-width: 2px;
+      border-radius: 5px;
+      padding: 1px 6px;
+      color: #fff;
+      background: #222634;
+      font-size: 12px;
+      margin: 0 1px;
+    }
+    label.num {
+      display:flex;
+      align-items:center;
+      gap:6px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    input[type=number] {
+      width: 70px;
+      border-radius: 8px;
+      border: 1px solid #3a4050;
+      background: #111319;
+      color: #fff;
+      padding: 7px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Karaoke Word Timer</h1>
+    <div class="files">
+      <label>Audio MP3/WAV: <input id="audioFile" type="file" accept="audio/*"></label>
+      <label>Lyrics TXT: <input id="lyricsFile" type="file" accept=".txt,text/plain"></label>
+    </div>
+  </header>
+
+  <main>
+    <aside>
+      <div class="side-top">
+        <div id="currentWord" class="big">Încarcă fișierele</div>
+        <div id="progress" class="small">0 / 0</div>
+      </div>
+      <div id="wordList"></div>
+    </aside>
+
+    <section>
+      <div class="toolbar">
+        <button id="playBtn" class="primary" disabled>Play / Pause (Space)</button>
+        <button id="markBtn" disabled>Mark word (D)</button>
+        <button id="backBtn" disabled>Back</button>
+        <button id="zoomInBtn" disabled>Zoom +</button>
+        <button id="zoomOutBtn" disabled>Zoom -</button>
+        <button id="exportAssBtn" disabled>Export ASS</button>
+        <button id="exportWordSrtBtn" disabled>Export Linked Word SRT</button>
+        <button id="exportLineSrtBtn" disabled>Export Line SRT</button>
+        <label class="num">pre-roll <input id="preRoll" type="number" step="0.1" value="1.0">s</label>
+        <div id="timeDisplay" class="timeDisplay">00:00.000</div>
+      </div>
+
+      <div class="subbar">
+        <div id="linePreview" class="linePreview">Linia curentă apare aici</div>
+        <div>Click waveform = seek · Space = play/pause · D = mark · ←/→ = 0.02s · Shift+←/→ = 0.10s</div>
+      </div>
+
+      <div class="canvasWrap">
+        <canvas id="wave"></canvas>
+        <div class="hint">
+          Workflow: click exact unde începe cuvântul pe waveform, apoi <span class="kbd">D</span>. 
+          Sau Play și apeși <span class="kbd">D</span> live. 
+          <span class="kbd">Backspace</span> revine la cuvântul anterior.
+        </div>
+      </div>
+      <div id="status" class="status">Aștept audio și lyrics.txt.</div>
+    </section>
+  </main>
+
+  <audio id="audio"></audio>
+
+<script>
+const audioInput = document.getElementById('audioFile');
+const lyricsInput = document.getElementById('lyricsFile');
+const audio = document.getElementById('audio');
+const canvas = document.getElementById('wave');
+const ctx = canvas.getContext('2d');
+
+const playBtn = document.getElementById('playBtn');
+const markBtn = document.getElementById('markBtn');
+const backBtn = document.getElementById('backBtn');
+const zoomInBtn = document.getElementById('zoomInBtn');
+const zoomOutBtn = document.getElementById('zoomOutBtn');
+const exportAssBtn = document.getElementById('exportAssBtn');
+const exportWordSrtBtn = document.getElementById('exportWordSrtBtn');
+const exportLineSrtBtn = document.getElementById('exportLineSrtBtn');
+
+const currentWordEl = document.getElementById('currentWord');
+const progressEl = document.getElementById('progress');
+const wordListEl = document.getElementById('wordList');
+const linePreviewEl = document.getElementById('linePreview');
+const timeDisplayEl = document.getElementById('timeDisplay');
+const statusEl = document.getElementById('status');
+const preRollInput = document.getElementById('preRoll');
+
+let audioBuffer = null;
+let peaks = [];
+let peakSecondsPerBucket = 0;
+let lyricsLines = [];
+let words = [];
+let wordIndex = 0;
+let viewCenter = 0;
+let zoomSeconds = 12;
+let raf = null;
+let dragging = false;
+
+function setStatus(s) { statusEl.textContent = s; }
+
+function cleanLine(line) {
+  const low = line.toLowerCase().replaceAll(':','').trim();
+  if (low.startsWith('strofa') || low.startsWith('refren')) return '';
+  return line.trim();
+}
+
+function extractWords(line) {
+  return line.match(/[A-Za-zĂÂÎȘŞȚŢăâîșşțţ0-9'’\-]+/gu) || [];
+}
+
+function loadLyricsText(text) {
+  lyricsLines = [];
+  words = [];
+  wordIndex = 0;
+
+  const rawLines = text.split(/\r?\n/);
+  for (const raw of rawLines) {
+    const line = cleanLine(raw);
+    if (!line) continue;
+    const ws = extractWords(line);
+    if (!ws.length) continue;
+
+    const lineObj = {
+      text: line,
+      words: ws,
+      startWordIndex: words.length,
+      endWordIndex: words.length + ws.length - 1
+    };
+    lyricsLines.push(lineObj);
+    const lineIndex = lyricsLines.length - 1;
+
+    for (const w of ws) {
+      words.push({ word: w, lineIndex, time: null });
+    }
+  }
+
+  renderWordList();
+  updateCurrentWord();
+  updateButtons();
+  setStatus(`Lyrics încărcat: ${words.length} cuvinte, ${lyricsLines.length} linii.`);
+}
+
+audioInput.addEventListener('change', async () => {
+  const file = audioInput.files[0];
+  if (!file) return;
+
+  const url = URL.createObjectURL(file);
+  audio.src = url;
+
+  setStatus('Decodez audio și construiesc waveform...');
+  const arrayBuffer = await file.arrayBuffer();
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  const ac = new AudioContext();
+  audioBuffer = await ac.decodeAudioData(arrayBuffer.slice(0));
+
+  buildPeaks();
+  viewCenter = 0;
+  updateButtons();
+  draw();
+  setStatus(`Audio încărcat: ${file.name}, ${fmtClock(audioBuffer.duration)}.`);
+});
+
+lyricsInput.addEventListener('change', async () => {
+  const file = lyricsInput.files[0];
+  if (!file) return;
+  const text = await file.text();
+  loadLyricsText(text);
+});
+
+function buildPeaks() {
+  const channel = audioBuffer.getChannelData(0);
+  const sampleRate = audioBuffer.sampleRate;
+  const pixelsPerSecond = 100;
+  const bucket = Math.max(1, Math.floor(sampleRate / pixelsPerSecond));
+  const count = Math.ceil(channel.length / bucket);
+  peaks = new Float32Array(count);
+  for (let i = 0; i < count; i++) {
+    let max = 0;
+    const start = i * bucket;
+    const end = Math.min(channel.length, start + bucket);
+    for (let j = start; j < end; j++) {
+      const v = Math.abs(channel[j]);
+      if (v > max) max = v;
+    }
+    peaks[i] = max;
+  }
+  peakSecondsPerBucket = bucket / sampleRate;
+}
+
+function updateButtons() {
+  const ready = !!audioBuffer && words.length > 0;
+  playBtn.disabled = !audioBuffer;
+  markBtn.disabled = !ready;
+  backBtn.disabled = !ready;
+  zoomInBtn.disabled = !audioBuffer;
+  zoomOutBtn.disabled = !audioBuffer;
+  exportAssBtn.disabled = !ready;
+  exportWordSrtBtn.disabled = !ready;
+  exportLineSrtBtn.disabled = !ready;
+}
+
+function currentTime() {
+  return audio.currentTime || 0;
+}
+
+function seek(t) {
+  if (!audioBuffer) return;
+  t = Math.max(0, Math.min(audioBuffer.duration, t));
+  audio.currentTime = t;
+  viewCenter = t;
+  draw();
+  updateTime();
+}
+
+playBtn.addEventListener('click', () => {
+  if (!audio.src) return;
+  if (audio.paused) audio.play();
+  else audio.pause();
+});
+
+markBtn.addEventListener('click', markWord);
+backBtn.addEventListener('click', backWord);
+zoomInBtn.addEventListener('click', () => { zoomSeconds = Math.max(1, zoomSeconds / 1.5); draw(); });
+zoomOutBtn.addEventListener('click', () => { zoomSeconds = Math.min(120, zoomSeconds * 1.5); draw(); });
+exportAssBtn.addEventListener('click', exportASS);
+exportWordSrtBtn.addEventListener('click', exportWordSRT);
+exportLineSrtBtn.addEventListener('click', exportLineSRT);
+
+function markWord() {
+  if (!words.length || wordIndex >= words.length) return;
+  words[wordIndex].time = currentTime();
+  wordIndex++;
+  updateCurrentWord();
+  renderWordList();
+  draw();
+}
+
+function backWord() {
+  if (wordIndex <= 0) return;
+  wordIndex--;
+  words[wordIndex].time = null;
+  updateCurrentWord();
+  renderWordList();
+  draw();
+}
+
+function updateCurrentWord() {
+  if (!words.length) {
+    currentWordEl.textContent = 'Încarcă lyrics';
+    progressEl.textContent = '0 / 0';
+    linePreviewEl.textContent = 'Linia curentă apare aici';
+    return;
+  }
+  if (wordIndex >= words.length) {
+    currentWordEl.textContent = 'GATA';
+    progressEl.textContent = `${words.length} / ${words.length}`;
+    linePreviewEl.textContent = 'Toate cuvintele sunt marcate. Exportă.';
+    return;
+  }
+  const w = words[wordIndex];
+  currentWordEl.textContent = w.word;
+  progressEl.textContent = `${wordIndex + 1} / ${words.length}`;
+  linePreviewEl.textContent = lyricsLines[w.lineIndex]?.text || '';
+  const item = document.querySelector(`[data-word-index="${wordIndex}"]`);
+  if (item) item.scrollIntoView({ block: 'nearest' });
+}
+
+function renderWordList() {
+  wordListEl.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  words.forEach((w, i) => {
+    const div = document.createElement('div');
+    div.className = 'wordItem' + (i === wordIndex ? ' current' : '') + (w.time !== null ? ' done' : '');
+    div.dataset.wordIndex = String(i);
+    div.innerHTML = `<span>${i+1}. ${escapeHtml(w.word)}</span><span class="time">${w.time === null ? '—' : fmtClock(w.time)}</span>`;
+    div.addEventListener('click', () => {
+      wordIndex = i;
+      updateCurrentWord();
+      renderWordList();
+      if (w.time !== null) seek(w.time);
+    });
+    frag.appendChild(div);
+  });
+  wordListEl.appendChild(frag);
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function resizeCanvas() {
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+  canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener('resize', () => { resizeCanvas(); draw(); });
+resizeCanvas();
+
+function visibleRange() {
+  const t = audioBuffer ? currentTime() : 0;
+  if (audio && !audio.paused) viewCenter = t;
+  const center = viewCenter || t;
+  const start = Math.max(0, center - zoomSeconds / 2);
+  const end = Math.min(audioBuffer?.duration || zoomSeconds, start + zoomSeconds);
+  return [Math.max(0, end - zoomSeconds), end];
+}
+
+function draw() {
+  resizeCanvas();
+  const w = canvas.clientWidth;
+  const h = canvas.clientHeight;
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#0a0b0e';
+  ctx.fillRect(0, 0, w, h);
+
+  if (!audioBuffer || !peaks.length) {
+    ctx.fillStyle = '#aab0bd';
+    ctx.font = '18px -apple-system, BlinkMacSystemFont, Segoe UI, Arial';
+    ctx.fillText('Încarcă MP3/WAV ca să vezi waveform-ul.', 24, 40);
+    return;
+  }
+
+  const [start, end] = visibleRange();
+  const duration = end - start;
+  const mid = h / 2;
+
+  // grid
+  ctx.strokeStyle = '#20242e';
+  ctx.lineWidth = 1;
+  const gridStep = duration <= 4 ? 0.25 : duration <= 12 ? 1 : duration <= 30 ? 2 : 5;
+  const firstGrid = Math.ceil(start / gridStep) * gridStep;
+  ctx.fillStyle = '#646b7a';
+  ctx.font = '12px monospace';
+  for (let t = firstGrid; t <= end; t += gridStep) {
+    const x = (t - start) / duration * w;
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, h);
+    ctx.stroke();
+    ctx.fillText(t.toFixed(duration <= 4 ? 2 : 1), x + 3, 14);
+  }
+
+  // waveform
+  ctx.fillStyle = '#7aa2ff';
+  const startIdx = Math.floor(start / peakSecondsPerBucket);
+  const endIdx = Math.min(peaks.length - 1, Math.ceil(end / peakSecondsPerBucket));
+  const ampScale = h * 0.43;
+
+  ctx.beginPath();
+  for (let i = startIdx; i <= endIdx; i++) {
+    const t = i * peakSecondsPerBucket;
+    const x = (t - start) / duration * w;
+    const y = mid - peaks[i] * ampScale;
+    if (i === startIdx) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  for (let i = endIdx; i >= startIdx; i--) {
+    const t = i * peakSecondsPerBucket;
+    const x = (t - start) / duration * w;
+    const y = mid + peaks[i] * ampScale;
+    ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.globalAlpha = 0.85;
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  // marked words
+  ctx.font = '12px -apple-system, BlinkMacSystemFont, Segoe UI, Arial';
+  words.forEach((word, idx) => {
+    if (word.time === null || word.time < start || word.time > end) return;
+    const x = (word.time - start) / duration * w;
+    ctx.strokeStyle = idx === wordIndex ? '#8cffc1' : '#f5f7fb';
+    ctx.lineWidth = idx === wordIndex ? 3 : 1;
+    ctx.beginPath();
+    ctx.moveTo(x, 20);
+    ctx.lineTo(x, h - 20);
+    ctx.stroke();
+    ctx.save();
+    ctx.translate(x + 4, 50);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillStyle = '#f5f7fb';
+    ctx.fillText(word.word, 0, 0);
+    ctx.restore();
+  });
+
+  // playhead
+  const t = currentTime();
+  if (t >= start && t <= end) {
+    const x = (t - start) / duration * w;
+    ctx.strokeStyle = '#ff7676';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, h);
+    ctx.stroke();
+  }
+}
+
+function canvasToTime(e) {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const [start, end] = visibleRange();
+  return start + (x / rect.width) * (end - start);
+}
+
+canvas.addEventListener('mousedown', (e) => {
+  dragging = true;
+  audio.pause();
+  seek(canvasToTime(e));
+});
+window.addEventListener('mousemove', (e) => {
+  if (!dragging) return;
+  seek(canvasToTime(e));
+});
+window.addEventListener('mouseup', () => { dragging = false; });
+
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  if (e.deltaY < 0) zoomSeconds = Math.max(1, zoomSeconds / 1.2);
+  else zoomSeconds = Math.min(120, zoomSeconds * 1.2);
+  draw();
+}, { passive: false });
+
+document.addEventListener('keydown', (e) => {
+  if (e.target && ['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+
+  if (e.code === 'Space') {
+    e.preventDefault();
+    playBtn.click();
+  } else if (e.key === 'd' || e.key === 'D') {
+    e.preventDefault();
+    markWord();
+  } else if (e.key === 'p' || e.key === 'P') {
+    e.preventDefault();
+    playBtn.click();
+  } else if (e.key === 'Backspace') {
+    e.preventDefault();
+    backWord();
+  } else if (e.key === 'ArrowLeft') {
+    e.preventDefault();
+    seek(currentTime() - (e.shiftKey ? 0.10 : 0.02));
+  } else if (e.key === 'ArrowRight') {
+    e.preventDefault();
+    seek(currentTime() + (e.shiftKey ? 0.10 : 0.02));
+  } else if (e.key === '+' || e.key === '=') {
+    zoomSeconds = Math.max(1, zoomSeconds / 1.5);
+    draw();
+  } else if (e.key === '-') {
+    zoomSeconds = Math.min(120, zoomSeconds * 1.5);
+    draw();
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    // Seek cu pre-roll la cuvântul curent, util pentru verificare
+    const w = words[wordIndex] || words[wordIndex - 1];
+    if (w && w.time !== null) {
+      const pr = parseFloat(preRollInput.value || '1') || 0;
+      seek(Math.max(0, w.time - pr));
+    }
+  }
+});
+
+function updateTime() {
+  timeDisplayEl.textContent = fmtClock(currentTime());
+}
+
+function loop() {
+  updateTime();
+  if (audioBuffer && !audio.paused) {
+    viewCenter = currentTime();
+    draw();
+  }
+  raf = requestAnimationFrame(loop);
+}
+loop();
+
+function fmtClock(seconds) {
+  seconds = Math.max(0, seconds || 0);
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  const ms = Math.floor((seconds - Math.floor(seconds)) * 1000);
+  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(ms).padStart(3,'0')}`;
+}
+
+function fmtAssTime(seconds) {
+  let cs = Math.round(Math.max(0, seconds) * 100);
+  const h = Math.floor(cs / 360000); cs %= 360000;
+  const m = Math.floor(cs / 6000); cs %= 6000;
+  const s = Math.floor(cs / 100); cs %= 100;
+  return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(cs).padStart(2,'0')}`;
+}
+
+function fmtSrtTime(seconds) {
+  let ms = Math.round(Math.max(0, seconds) * 1000);
+  const h = Math.floor(ms / 3600000); ms %= 3600000;
+  const m = Math.floor(ms / 60000); ms %= 60000;
+  const s = Math.floor(ms / 1000); ms %= 1000;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')},${String(ms).padStart(3,'0')}`;
+}
+
+function ensureTimes() {
+  if (!words.length) throw new Error('Nu există lyrics.');
+  const marked = words.filter(w => w.time !== null).length;
+  if (marked < 2) throw new Error('Marchează cel puțin 2 cuvinte.');
+  let last = 0;
+  for (const w of words) {
+    if (w.time === null) w.time = last + 0.3;
+    last = w.time;
+  }
+}
+
+function download(filename, text) {
+  const blob = new Blob([text], {type: 'text/plain;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function exportASS() {
+  try { ensureTimes(); } catch (e) { alert(e.message); return; }
+
+  const header = `[Script Info]
+Title: Karaoke Timed Lyrics
+ScriptType: v4.00+
+PlayResX: 1920
+PlayResY: 1080
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Arial,72,&H00FFFFFF,&H0000FFFF,&H00000000,&H64000000,1,0,0,0,100,100,0,0,1,4,0,2,100,100,150,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+`;
+
+  let out = header;
+  lyricsLines.forEach((line, lineIdx) => {
+    const startI = line.startWordIndex;
+    const endI = line.endWordIndex;
+    const lineWords = words.slice(startI, endI + 1);
+    const lineStart = lineWords[0].time;
+    const lineEnd = lineIdx + 1 < lyricsLines.length
+      ? words[lyricsLines[lineIdx + 1].startWordIndex].time
+      : lineWords[lineWords.length - 1].time + 1.2;
+
+    const parts = lineWords.map((item, j) => {
+      const cur = item.time;
+      const nxt = j + 1 < lineWords.length ? lineWords[j + 1].time : lineEnd;
+      const durCs = Math.max(1, Math.round((nxt - cur) * 100));
+      return `{\\k${durCs}}${item.word}`;
+    });
+
+    out += `Dialogue: 0,${fmtAssTime(lineStart)},${fmtAssTime(lineEnd)},Default,,0,0,0,,${parts.join(' ')}\n`;
+  });
+
+  download('lyrics_karaoke_timed.ass', out);
+}
+
+function exportWordSRT() {
+  try { ensureTimes(); } catch (e) { alert(e.message); return; }
+
+  // CapCut linked export:
+  // - fără overlap
+  // - fără gap/pauză între captions
+  // - end-ul fiecărui cuvânt = start-ul următorului
+  const MIN_STEP = 0.04; // doar corectează click-uri puse accidental înapoi
+
+  const safe = words.map(w => ({ word: w.word, time: w.time }));
+  let lastStart = -999;
+
+  for (let i = 0; i < safe.length; i++) {
+    if (safe[i].time <= lastStart) {
+      safe[i].time = lastStart + MIN_STEP;
+    }
+    lastStart = safe[i].time;
+  }
+
+  let out = '';
+  for (let i = 0; i < safe.length; i++) {
+    const start = safe[i].time;
+    let end;
+
+    if (i + 1 < safe.length) {
+      end = safe[i + 1].time;
+    } else {
+      end = start + 0.5;
+    }
+
+    out += `${i + 1}\n${fmtSrtTime(start)} --> ${fmtSrtTime(end)}\n${safe[i].word}\n\n`;
+  }
+
+  download('lyrics_words_timed_LINKED_NO_GAP.srt', out);
+}
+
+function exportLineSRT() {
+  try { ensureTimes(); } catch (e) { alert(e.message); return; }
+  let out = '';
+  lyricsLines.forEach((line, idx) => {
+    const start = words[line.startWordIndex].time;
+    const end = idx + 1 < lyricsLines.length
+      ? words[lyricsLines[idx + 1].startWordIndex].time
+      : words[line.endWordIndex].time + 1.2;
+    out += `${idx + 1}\n${fmtSrtTime(start)} --> ${fmtSrtTime(end)}\n${line.text}\n\n`;
+  });
+  download('lyrics_lines_timed.srt', out);
+}
+</script>
+</body>
+</html>
